@@ -44,6 +44,9 @@ func CheckAuthorizationHeaderWithValidUser() gin.HandlerFunc {
 			return
 		}
 
+		// Add some headers from JWT token
+		c.Request.Header.Set("MSISDN", fmt.Sprintf("%v", claims["user_id"]))
+
 		c.Next()
 	}
 }
@@ -89,6 +92,9 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		// Add some headers from JWT token
+		c.Request.Header.Set("MSISDN", fmt.Sprintf("%v", claims["user_id"]))
 
 		c.Next()
 	}
