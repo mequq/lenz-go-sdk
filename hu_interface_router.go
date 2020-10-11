@@ -58,7 +58,7 @@ func (r *Router) do(c *gin.Context, errorStatusCode int, errorMessage string) ([
 	req.Header.Set("Authorization", r.Authorization)
 	req.Header.Set("X-Forwarded-For", r.XForwardedFor)
 	req.Header.Set("MSISDN", r.MSISDN)
-	req.Header.Set("Request-Id", r.RequestID)
+	req.Header.Set("X-Request-Id", r.RequestID)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
