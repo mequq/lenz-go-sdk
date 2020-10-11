@@ -76,10 +76,10 @@ func (r *Router) do(c *gin.Context, errorStatusCode int, errorMessage string) ([
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		c.Data(resp.StatusCode, gin.MIMEJSON, byteResponse)
-		return nil, errors.New("invalid response")
+		return nil, errors.New("client should login again")
 	} else if resp.StatusCode != http.StatusOK {
 		c.JSON(errorStatusCode, gin.H{"message": errorMessage})
-		return nil, err
+		return nil, errors.New("invalid response")
 	}
 
 	return byteResponse, nil
