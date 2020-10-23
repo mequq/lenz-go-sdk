@@ -88,7 +88,7 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 		}
 
 		if fmt.Sprintf("%v", claims["ip"]) != c.Request.Header.Get("X-Forwarded-For") {
-			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
 			return
 		}
