@@ -37,15 +37,20 @@ func NewRouter(c *gin.Context, endPoint string) *Router {
 
 // Execute send data to HU and check default errors
 func (r *Router) Execute(c *gin.Context) ([]byte, error) {
-	return r.do(c, false, http.StatusNotAcceptable, "در انجام درخواست شما خطایی رخ داده است")
+	return r.do(c, false, true, http.StatusNotAcceptable, "در انجام درخواست شما خطایی رخ داده است")
+}
+
+// ExecuteWithCriticalErrors send data to HU and fill gin.c when error is critical
+func (r *Router) ExecuteWithCriticalErrors(c *gin.Context) ([]byte, error) {
+	return r.do(c, false, false, http.StatusNotAcceptable, "در انجام درخواست شما خطایی رخ داده است")
 }
 
 // ExecuteBackgroundUseCase send data to HU and check default errors
 func (r *Router) ExecuteBackgroundUseCase(c *gin.Context) ([]byte, error) {
-	return r.do(c, true, http.StatusUnprocessableEntity, "در انجام درخواست شما خطایی رخ داده است")
+	return r.do(c, true, true, http.StatusUnprocessableEntity, "در انجام درخواست شما خطایی رخ داده است")
 }
 
-func (r *Router) do(c *gin.Context, backgroundUseCase bool, errorStatusCode int, errorMessage string) ([]byte, error) {
+func (r *Router) do(c *gin.Context, backgroundUseCase bool, checkAllErrors bool, errorStatusCode int, errorMessage string) ([]byte, error) {
 	payload, err := json.Marshal(r.Data)
 	if err != nil {
 		c.JSON(errorStatusCode, gin.H{"message": errorMessage})
@@ -63,26 +68,37 @@ func (r *Router) do(c *gin.Context, backgroundUseCase bool, errorStatusCode int,
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		c.JSON(errorStatusCode, gin.H{"message": errorMessage})
+		if checkAllErrors {
+			c.JSON(errorStatusCode, gin.H{"message": errorMessage})
+		}
+
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	byteResponse, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		c.JSON(errorStatusCode, gin.H{"message": errorMessage})
+		if checkAllErrors {
+			c.JSON(errorStatusCode, gin.H{"message": errorMessage})
+		}
+
 		return nil, err
 	}
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		if backgroundUseCase {
-			c.Data(errorStatusCode, gin.MIMEJSON, byteResponse)
+			if checkAllErrors {
+				c.Data(errorStatusCode, gin.MIMEJSON, byteResponse)
+			}
 		} else {
 			c.Data(resp.StatusCode, gin.MIMEJSON, byteResponse)
 		}
 		return nil, errors.New("client should login again")
 	} else if resp.StatusCode != http.StatusOK {
-		c.JSON(errorStatusCode, gin.H{"message": errorMessage})
+		if checkAllErrors {
+			c.JSON(errorStatusCode, gin.H{"message": errorMessage})
+		}
+
 		return nil, errors.New("invalid response")
 	}
 
