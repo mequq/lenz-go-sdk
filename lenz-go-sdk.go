@@ -1,6 +1,8 @@
 package lenzsdk
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -98,6 +100,32 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func guestLogin(c *gin.Context, ClientIP string) (interface{}, error) {
+	deviceType := c.Request.Header.Get("Device-Type")
+	if len(deviceType) == 0 {
+		deviceType = "WEB"
+	}
+	url := os.Getenv("GUEST_LOGIN_URL")
+	req, err := http.NewRequest("POST", url, bytes.NewBufferString(""))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Forwarded-For", ClientIP)
+	req.Header.Set("Device-Type", deviceType)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	authorization := resp.Header.Get("Authorization")
+	if len(authorization) > 0 {
+		c.Request.Header.Set("Authorization", authorization)
+		return resp, nil
+	}
+	return nil, errors.New("N1528o1t5786")
+
 }
 
 func checkIfUserIPChanged(c *gin.Context, ClientIP string) bool {
