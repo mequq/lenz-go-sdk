@@ -102,14 +102,13 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 	}
 }
 
-func guestLogin(c *gin.Context, ClientIP string) (interface{}, error) {
+func GuestLogin(c *gin.Context, ClientIP string) (interface{}, error) {
 	deviceType := c.Request.Header.Get("Device-Type")
 	if len(deviceType) == 0 {
 		deviceType = "WEB"
 	}
 	url := os.Getenv("GUEST_LOGIN_URL")
 	req, err := http.NewRequest("POST", url, bytes.NewBufferString(""))
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Forwarded-For", ClientIP)
 	req.Header.Set("Device-Type", deviceType)
 
