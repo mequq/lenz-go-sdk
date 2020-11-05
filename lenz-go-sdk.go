@@ -142,6 +142,12 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 					c.Abort()
 					return
 				}
+				claims, err = ParseJWTHeader(c.Request.Header.Get("Authorization"))
+				if err != nil {
+					c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+					c.Abort()
+					return
+				}
 			}
 		}
 
