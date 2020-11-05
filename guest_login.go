@@ -35,7 +35,7 @@ func GuestLogin(c *gin.Context) (interface{}, error) {
 	authorization := resp.Header.Get("Authorization")
 	if len(authorization) > 0 {
 		c.Request.Header.Set("Authorization", authorization)
-		c.Request.Response.Header.Set("Authorization", authorization)
+		c.Request.Header.Set("New-Guest-Token", "True")
 		return resp, nil
 	}
 
