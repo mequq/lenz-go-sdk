@@ -1,11 +1,10 @@
 package lenzsdk
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
@@ -83,7 +82,7 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 		}
 
 		// Check if user IP changed then return 401/unauthorize in response
-		if len(c.Request.Header.Get("X-Forwarded-For")) == 0 {
+		if !IPValidator(c.Request.Header.Get("X-Forwarded-For")) {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Some of the required headers are missed"})
 			c.Abort()
 			return
@@ -102,39 +101,85 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 	}
 }
 
-func GuestLogin(c *gin.Context, ClientIP string) (interface{}, error) {
-	deviceType := c.Request.Header.Get("Device-Type")
-	if len(deviceType) == 0 {
-		deviceType = "WEB"
-	}
-	url := os.Getenv("GUEST_LOGIN_URL")
-	req, err := http.NewRequest("POST", url, bytes.NewBufferString(""))
-	req.Header.Set("X-Forwarded-For", ClientIP)
-	req.Header.Set("Device-Type", deviceType)
+// CheckProcessableHeaderWithValidUser check request has valid token and be processable
+func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
+		// Check X-Forwarded-For IP unvalid then return 401/unauthorize in response
+		if !IPValidator(c.Request.Header.Get("X-Forwarded-For")) {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Some of the required headers are missed"})
+			c.Abort()
+			return
+		}
 
-	authorization := resp.Header.Get("Authorization")
-	if len(authorization) > 0 {
-		c.Request.Header.Set("Authorization", authorization)
-		return resp, nil
-	}
-	return nil, errors.New("N1528o1t5786")
+		// Login as guest if Authorization header not included
+		if len(c.Request.Header.Get("Authorization")) == 0 {
+			_, err := GuestLogin(c)
+			if err != nil {
+				c.Abort()
+				return
+			}
+		}
 
+		// Check Authorization header is valid
+		authorization := strings.Split(c.Request.Header.Get("Authorization"), "Bearer ")
+		if len(authorization) != 2 {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.Abort()
+			return
+		}
+
+		// Parse JWT token
+		claims := jwt.MapClaims{}
+		_, err := jwt.ParseWithClaims(authorization[1], claims, func(token *jwt.Token) (interface{}, error) {
+			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+		})
+
+		if err != nil {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.Abort()
+			return
+		}
+
+		// if user was a guest we call the guest login again else we return 401
+		if fmt.Sprintf("%v", claims["ip"]) != c.Request.Header.Get("X-Forwarded-For") {
+			if claims["is_guest"] == false {
+				c.JSON(http.StatusForbidden, gin.H{"message": "دسترسی شما منقضی شده است"})
+				c.Abort()
+				return
+			} else {
+				_, err := GuestLogin(c)
+				if err != nil {
+					c.Abort()
+					return
+				}
+			}
+		}
+
+		// Add some headers from JWT token
+		c.Request.Header.Set("MSISDN", fmt.Sprintf("%v", claims["user_id"]))
+
+		c.Next()
+	}
 }
 
-func checkIfUserIPChanged(c *gin.Context, ClientIP string) bool {
-	if len(c.Request.Header.Get("X-Forwarded-For")) == 0 {
-		c.JSON(http.StatusForbidden, gin.H{"message": "Some of the required headers are missed"})
+// IPValidator checks the input string with regex based on real IP Adress Version 4 like 192.168.0.0
+func IPValidator(ipAddress string) bool {
+	match, _ := regexp.MatchString(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`, ipAddress)
+	return match
+}
+
+func checkIfUserIPChanged(c *gin.Context, clientIP string) bool {
+
+	headerIP := c.Request.Header.Get("X-Forwarded-For")
+
+	if len(c.Request.Header.Get("X-Forwarded-For")) == 0 || !IPValidator(headerIP) {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Some of the required headers are missed or invalid"})
 		c.Abort()
 		return true
 	}
 
-	if ClientIP != c.Request.Header.Get("X-Forwarded-For") {
+	if clientIP != c.Request.Header.Get("X-Forwarded-For") {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 		c.Abort()
 		return true
