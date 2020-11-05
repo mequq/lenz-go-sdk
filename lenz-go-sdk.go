@@ -24,7 +24,7 @@ func CheckAuthorizationHeaderWithValidUser() gin.HandlerFunc {
 		// Check and Parse Authorization header token
 		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
 		if err != nil {
-			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
 			return
 		}
