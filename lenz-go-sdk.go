@@ -1,6 +1,7 @@
 package lenzsdk
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -121,20 +122,8 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 			}
 		}
 
-		// Check Authorization header is valid
-		authorization := strings.Split(c.Request.Header.Get("Authorization"), "Bearer ")
-		if len(authorization) != 2 {
-			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
-			c.Abort()
-			return
-		}
-
-		// Parse JWT token
-		claims := jwt.MapClaims{}
-		_, err := jwt.ParseWithClaims(authorization[1], claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
-		})
-
+		// Check Authorization header
+		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
 		if err != nil {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
@@ -144,7 +133,7 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 		// if user was a guest we call the guest login again else we return 401
 		if fmt.Sprintf("%v", claims["ip"]) != c.Request.Header.Get("X-Forwarded-For") {
 			if claims["is_guest"] == false {
-				c.JSON(http.StatusForbidden, gin.H{"message": "دسترسی شما منقضی شده است"})
+				c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 				c.Abort()
 				return
 			} else {
@@ -173,17 +162,35 @@ func checkIfUserIPChanged(c *gin.Context, clientIP string) bool {
 
 	headerIP := c.Request.Header.Get("X-Forwarded-For")
 
-	if len(c.Request.Header.Get("X-Forwarded-For")) == 0 || !IPValidator(headerIP) {
+	if !IPValidator(headerIP) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "Some of the required headers are missed or invalid"})
 		c.Abort()
 		return true
 	}
 
-	if clientIP != c.Request.Header.Get("X-Forwarded-For") {
+	if clientIP != headerIP {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 		c.Abort()
 		return true
 	}
 
 	return false
+}
+func ParseJWTHeader(token string) (map[string]interface{}, error) {
+	authorization := strings.Split(token, "Bearer ")
+	if len(authorization) != 2 {
+		return nil, errors.New("Not valid token")
+	}
+
+	// Parse JWT token
+	claims := jwt.MapClaims{}
+	_, err := jwt.ParseWithClaims(authorization[1], claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return claims, nil
 }
