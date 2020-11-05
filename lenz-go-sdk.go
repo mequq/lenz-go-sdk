@@ -21,22 +21,10 @@ func CheckAuthorizationHeaderWithValidUser() gin.HandlerFunc {
 			return
 		}
 
-		// Check Authorization header is valid
-		authorization := strings.Split(c.Request.Header.Get("Authorization"), "Bearer ")
-		if len(authorization) != 2 {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
-			c.Abort()
-			return
-		}
-
-		// Parse JWT token
-		claims := jwt.MapClaims{}
-		_, err := jwt.ParseWithClaims(authorization[1], claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
-		})
-
+		// Check and Parse Authorization header token
+		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
 			return
 		}
@@ -62,20 +50,8 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 			return
 		}
 
-		// Check Authorization header is valid
-		authorization := strings.Split(c.Request.Header.Get("Authorization"), "Bearer ")
-		if len(authorization) != 2 {
-			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
-			c.Abort()
-			return
-		}
-
-		// Parse JWT token
-		claims := jwt.MapClaims{}
-		_, err := jwt.ParseWithClaims(authorization[1], claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET_KEY")), nil
-		})
-
+		// Check and Parse Authorization header token
+		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
 		if err != nil {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
@@ -102,7 +78,7 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 	}
 }
 
-// CheckProcessableHeaderWithValidUser check request has valid token and be processable
+// CheckAuthorizationHeaderWithValidOrGuestUser check request has valid token for valid users or loging in  as guest user and returns the token
 func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -122,7 +98,7 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 			}
 		}
 
-		// Check Authorization header
+		// Check and Parse Authorization header token
 		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
 		if err != nil {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
