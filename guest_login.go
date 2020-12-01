@@ -44,7 +44,7 @@ func GuestLogin(c *gin.Context) (interface{}, error) {
 	}
 
 	c.Request.Header.Set("Authorization", authorization)
-	c.Request.Response.Header.Set("Authorization", authorization)
-	c.Request.Response.Header.Set("Is-Guest", "True")
+	c.Header("Authorization", authorization)
+	c.Header("Is-Guest", "True")
 	return resp, nil
 }

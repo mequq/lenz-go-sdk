@@ -104,7 +104,7 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 		}
 
 		if isGuest, ok := claims["is_guest"]; ok && isGuest == "true" {
-			c.Request.Response.Header.Set("Is-Guest", "True")
+			c.Header("Is-Guest", "True")
 		}
 
 		clientIP := fmt.Sprintf("%v", claims["ip"])
