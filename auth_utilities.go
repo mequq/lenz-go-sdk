@@ -1,0 +1,174 @@
+package lenzsdk
+
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+)
+
+// CheckAuthorizationHeaderWithValidUser check request has valid token
+func CheckAuthorizationHeaderWithValidUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if len(c.Request.Header.Get("Authorization")) == 0 {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.Abort()
+			return
+		}
+
+		// Check and Parse Authorization header token
+		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.Abort()
+			return
+		}
+
+		if isGuest, ok := claims["is_guest"]; ok && isGuest == "true" {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "لطفا لاگین کنید"})
+			c.Abort()
+			return
+		}
+
+		// Check if user IP changed then return 401/unauthorize in response
+		if checkIfUserIPChanged(c, fmt.Sprintf("%v", claims["ip"])) {
+			return
+		}
+
+		// Add some headers from JWT token
+		addRequiredHeadersFromJWT(c, claims)
+		c.Next()
+	}
+}
+
+// CheckProcessableHeaderWithValidUser check request has valid token and be processable
+func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if len(c.Request.Header.Get("Authorization")) == 0 {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.Abort()
+			return
+		}
+
+		// Check and Parse Authorization header token
+		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
+		if err != nil {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.Abort()
+			return
+		}
+
+		if isGuest, ok := claims["is_guest"]; ok && isGuest == "true" {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "لطفا لاگین کنید"})
+			c.Abort()
+			return
+		}
+
+		clientIP := fmt.Sprintf("%v", claims["ip"])
+		if clientIP != c.Request.Header.Get("X-Forwarded-For") && len(clientIP) > 0 {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.Abort()
+			return
+		}
+
+		// Add some headers from JWT token
+		addRequiredHeadersFromJWT(c, claims)
+
+		c.Next()
+	}
+}
+
+// CheckAuthorizationHeaderWithValidOrGuestUser check request has valid token for valid users or loging in  as guest user and returns the token
+func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		// Login as guest if Authorization header not included
+		if len(c.Request.Header.Get("Authorization")) == 0 {
+			_, err := GuestLogin(c)
+			if err != nil {
+				c.Abort()
+				return
+			}
+		}
+
+		// Check and Parse Authorization header token
+		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
+		if err != nil {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.Abort()
+			return
+		}
+
+		if isGuest, ok := claims["is_guest"]; ok && isGuest == "true" {
+			c.Request.Response.Header.Set("Is-Guest", "True")
+		}
+
+		clientIP := fmt.Sprintf("%v", claims["ip"])
+		// if user was a guest we call the guest login again else we return 401
+		if clientIP != c.Request.Header.Get("X-Forwarded-For") && len(clientIP) > 0 {
+			if claims["is_guest"] == false {
+				c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
+				c.Abort()
+				return
+			}
+
+			_, err := GuestLogin(c)
+			if err != nil {
+				c.Abort()
+				return
+			}
+
+			claims, err = ParseJWTHeader(c.Request.Header.Get("Authorization"))
+			if err != nil {
+				c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+				c.Abort()
+				return
+			}
+		}
+
+		// Add some headers from JWT token
+		addRequiredHeadersFromJWT(c, claims)
+
+		c.Next()
+	}
+}
+
+func checkIfUserIPChanged(c *gin.Context, clientIP string) bool {
+	headerIP := c.Request.Header.Get("X-Forwarded-For")
+
+	if clientIP != headerIP || len(clientIP) == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
+		c.Abort()
+		return true
+	}
+
+	return false
+}
+
+// ParseJWTHeader parse jwt header with JWT_SECRET_KEY that comes from .env
+func ParseJWTHeader(token string) (map[string]interface{}, error) {
+	authorization := strings.Split(token, "Bearer ")
+	if len(authorization) != 2 {
+		return nil, errors.New("Not valid token")
+	}
+
+	// Parse JWT token
+	claims := jwt.MapClaims{}
+	_, err := jwt.ParseWithClaims(authorization[1], claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return claims, nil
+}
+
+func addRequiredHeadersFromJWT(c *gin.Context, claims map[string]interface{}) {
+	c.Request.Header.Set("MSISDN", fmt.Sprintf("%v", claims["user_id"]))
+}
