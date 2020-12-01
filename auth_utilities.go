@@ -28,7 +28,7 @@ func CheckAuthorizationHeaderWithValidUser() gin.HandlerFunc {
 			return
 		}
 
-		if isGuest, ok := claims["is_guest"]; ok && isGuest == "true" {
+		if claims["is_guest"] == true {
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "لطفا لاگین کنید"})
 			c.Abort()
 			return
@@ -62,7 +62,7 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 			return
 		}
 
-		if isGuest, ok := claims["is_guest"]; ok && isGuest == "true" {
+		if claims["is_guest"] == true {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "لطفا لاگین کنید"})
 			c.Abort()
 			return
@@ -103,7 +103,7 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 			return
 		}
 
-		if isGuest, ok := claims["is_guest"]; ok && isGuest == "true" {
+		if claims["is_guest"] == true {
 			c.Header("Is-Guest", "True")
 		}
 
