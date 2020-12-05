@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 
+	lenzsdk "git.abanppc.com/lenz-public/lenz-go-sdk"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -47,6 +48,7 @@ func init() {
 
 	multi := zerolog.MultiLevelWriter(con)
 	Logger = zerolog.New(multi).Level(loggerLevel).With().
+		Str("hostName", lenzsdk.HostName()).
 		Strs("tags", []string{
 			os.Getenv("MS_NAME"),
 		}).
