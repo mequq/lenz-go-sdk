@@ -56,10 +56,11 @@ func init() {
 }
 
 // WithRequestHeaders add request headers to logger
-func WithRequestHeaders(c *gin.Context) zerolog.Logger {
-	return Logger.With().
+func WithRequestHeaders(c *gin.Context) *zerolog.Logger {
+	l := Logger.With().
 		Str("X-Request-Id", c.Request.Header.Get("X-Request-Id")).
 		Str("msisdn", c.Request.Header.Get("MSISDN")).
 		Str("clientIP", c.Request.Header.Get("X-Forwarded-For")).
 		Logger()
+	return &l
 }
