@@ -5,9 +5,14 @@ import (
 	"net"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 )
+
+type zerologEvent struct {
+	event *zerolog.Event
+}
 
 // Logger is a global object that write logs
 var Logger zerolog.Logger
@@ -42,6 +47,17 @@ func init() {
 
 	multi := zerolog.MultiLevelWriter(con)
 	Logger = zerolog.New(multi).Level(loggerLevel).With().
-		Array("tags", zerolog.Arr().Str(os.Getenv("MS_NAME"))).
+		Strs("tags", []string{
+			os.Getenv("MS_NAME"),
+		}).
 		Timestamp().Logger()
+}
+
+// WithRequestHeaders add request headers to logger
+func WithRequestHeaders(c *gin.Context) zerolog.Logger {
+	return Logger.With().
+		Str("X-Request-Id", c.Request.Header.Get("X-Request-Id")).
+		Str("msisdn", c.Request.Header.Get("MSISDN")).
+		Str("clientIP", c.Request.Header.Get("X-Forwarded-For")).
+		Logger()
 }
