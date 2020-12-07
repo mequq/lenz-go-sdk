@@ -49,9 +49,7 @@ func init() {
 	multi := zerolog.MultiLevelWriter(con)
 	Logger = zerolog.New(multi).Level(loggerLevel).With().
 		Str("hostName", lenzsdk.HostName()).
-		Strs("tags", []string{
-			os.Getenv("MS_NAME"),
-		}).
+		Strs("tags", []string{os.Getenv("MS_NAME")}).
 		Timestamp().Logger()
 }
 
