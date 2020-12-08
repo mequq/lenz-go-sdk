@@ -11,16 +11,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type zerologEvent struct {
-	event *zerolog.Event
-}
-
 // Logger is a global object that write logs
 var Logger zerolog.Logger
 
 func init() {
 	godotenv.Load()
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMicro
+	zerolog.MessageFieldName = "logMessage"
 
 	loggerLevelStr := os.Getenv("LOGGER_LEVEL")
 	loggerLevel := zerolog.InfoLevel
