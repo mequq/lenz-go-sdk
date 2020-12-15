@@ -21,10 +21,10 @@ type TiamoRouter struct {
 }
 
 // NewTiamoRouter create TiamoRouter from gin.Context
-func NewTiamoRouter(c *gin.Context, endPoint string) *TiamoRouter {
+func NewTiamoRouter(c *gin.Context, method, endPoint string) *TiamoRouter {
 	router := &TiamoRouter{
 		EndPoint:      endPoint,
-		Method:        "POST",
+		Method:        method,
 		XForwardedFor: c.Request.Header.Get("X-Forwarded-For"),
 		MSISDN:        c.Request.Header.Get("MSISDN"),
 		RequestID:     c.Request.Header.Get("X-Request-Id"),
