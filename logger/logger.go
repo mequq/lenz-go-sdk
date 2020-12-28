@@ -5,7 +5,6 @@ import (
 	"net"
 	"os"
 
-	lenzsdk "git.abanppc.com/lenz-public/lenz-go-sdk"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -45,7 +44,7 @@ func init() {
 
 	multi := zerolog.MultiLevelWriter(con)
 	Logger = zerolog.New(multi).Level(loggerLevel).With().
-		Str("hostName", lenzsdk.HostName()).
+		Str("hostName", hostName()).
 		Strs("tags", []string{os.Getenv("MS_NAME")}).
 		Timestamp().Logger()
 }
@@ -58,4 +57,12 @@ func WithRequestHeaders(c *gin.Context) *zerolog.Logger {
 		Str("clientIP", c.Request.Header.Get("X-Forwarded-For")).
 		Logger()
 	return &l
+}
+
+func hostName() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return ""
+	}
+	return hostname
 }

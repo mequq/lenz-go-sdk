@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"git.abanppc.com/lenz-public/lenz-go-sdk/logger"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
@@ -15,6 +16,10 @@ import (
 func CheckAuthorizationHeaderWithValidUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if len(c.Request.Header.Get("Authorization")) == 0 {
+			logger.WithRequestHeaders(c).Warn().
+				Uint32("logCode", 230101).
+				Str("action", "CheckHeaderWithValidUser").
+				Msg("Authorization Header is empty")
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
 			return
@@ -23,12 +28,25 @@ func CheckAuthorizationHeaderWithValidUser() gin.HandlerFunc {
 		// Check and Parse Authorization header token
 		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
 		if err != nil {
+			logger.WithRequestHeaders(c).Warn().
+				Uint32("logCode", 230102).
+				Str("action", "CheckHeaderWithValidUser").
+				Msg(err.Error())
+
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
 			return
 		}
 
+		// Add some headers from JWT token
+		addRequiredHeadersFromJWT(c, claims)
+
 		if claims["is_guest"] == true {
+			logger.WithRequestHeaders(c).Warn().
+				Uint32("logCode", 230103).
+				Str("action", "CheckHeaderWithValidUser").
+				Msg("The token is for Guest User")
+
 			c.Header("Is-Guest", "True")
 			c.JSON(http.StatusUnauthorized, gin.H{"message": "لطفا لاگین کنید"})
 			c.Abort()
@@ -37,11 +55,20 @@ func CheckAuthorizationHeaderWithValidUser() gin.HandlerFunc {
 
 		// Check if user IP changed then return 401/unauthorize in response
 		if checkIfUserIPChanged(c, fmt.Sprintf("%v", claims["ip"])) {
+			logger.WithRequestHeaders(c).Warn().
+				Uint32("logCode", 230104).
+				Str("action", "CheckHeaderWithValidUser").
+				Str("previousIP", fmt.Sprintf("%v", claims["ip"])).
+				Msg("The user IP has been changed")
+
 			return
 		}
 
-		// Add some headers from JWT token
-		addRequiredHeadersFromJWT(c, claims)
+		logger.WithRequestHeaders(c).Debug().
+			Uint32("logCode", 130100).
+			Str("action", "CheckHeaderWithValidUser").
+			Msg("The Token is valid")
+
 		c.Next()
 	}
 }
@@ -50,6 +77,11 @@ func CheckAuthorizationHeaderWithValidUser() gin.HandlerFunc {
 func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if len(c.Request.Header.Get("Authorization")) == 0 {
+			logger.WithRequestHeaders(c).Warn().
+				Uint32("logCode", 230111).
+				Str("action", "CheckHeaderWithValidUserInBackgroundAPI").
+				Msg("Authorization Header is empty")
+
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
 			return
@@ -58,20 +90,11 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 		// Check and Parse Authorization header token
 		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
 		if err != nil {
-			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
-			c.Abort()
-			return
-		}
+			logger.WithRequestHeaders(c).Warn().
+				Uint32("logCode", 230112).
+				Str("action", "CheckHeaderWithValidUserInBackgroundAPI").
+				Msg(err.Error())
 
-		if claims["is_guest"] == true {
-			c.Header("Is-Guest", "True")
-			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "لطفا لاگین کنید"})
-			c.Abort()
-			return
-		}
-
-		clientIP := fmt.Sprintf("%v", claims["ip"])
-		if clientIP != c.Request.Header.Get("X-Forwarded-For") && len(clientIP) > 0 {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
 			return
@@ -79,6 +102,36 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 
 		// Add some headers from JWT token
 		addRequiredHeadersFromJWT(c, claims)
+
+		if claims["is_guest"] == true {
+			logger.WithRequestHeaders(c).Warn().
+				Uint32("logCode", 230113).
+				Str("action", "CheckHeaderWithValidUserInBackgroundAPI").
+				Msg("The token is for Guest User")
+
+			c.Header("Is-Guest", "True")
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "لطفا لاگین کنید"})
+			c.Abort()
+			return
+		}
+
+		clientIP := fmt.Sprintf("%v", claims["ip"])
+		if clientIP != c.Request.Header.Get("X-Forwarded-For") || len(clientIP) == 0 {
+			logger.WithRequestHeaders(c).Warn().
+				Uint32("logCode", 230114).
+				Str("action", "CheckHeaderWithValidUserInBackgroundAPI").
+				Str("previousIP", fmt.Sprintf("%v", claims["ip"])).
+				Msg("The user IP has been changed")
+
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.Abort()
+			return
+		}
+
+		logger.WithRequestHeaders(c).Debug().
+			Uint32("logCode", 130110).
+			Str("action", "CheckHeaderWithValidUserInBackgroundAPI").
+			Msg("The Token is valid")
 
 		c.Next()
 	}
@@ -92,14 +145,29 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 		if len(c.Request.Header.Get("Authorization")) == 0 {
 			_, err := GuestLogin(c)
 			if err != nil {
+				logger.WithRequestHeaders(c).Error().
+					Uint32("logCode", 230121).
+					Str("action", "CheckHeaderWithValidOrGuestUser").
+					Msg(err.Error())
+
 				c.Abort()
 				return
 			}
+
+			logger.WithRequestHeaders(c).Debug().
+				Uint32("logCode", 130122).
+				Str("action", "CheckHeaderWithValidOrGuestUser").
+				Msg("Guest Login Successfully")
 		}
 
 		// Check and Parse Authorization header token
 		claims, err := ParseJWTHeader(c.Request.Header.Get("Authorization"))
 		if err != nil {
+			logger.WithRequestHeaders(c).Warn().
+				Uint32("logCode", 230123).
+				Str("action", "CheckHeaderWithValidOrGuestUser").
+				Msg(err.Error())
+
 			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
 			return
@@ -109,10 +177,19 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 			c.Header("Is-Guest", "True")
 		}
 
+		// Add some headers from JWT token
+		addRequiredHeadersFromJWT(c, claims)
+
 		clientIP := fmt.Sprintf("%v", claims["ip"])
 		// if user was a guest we call the guest login again else we return 401
-		if clientIP != c.Request.Header.Get("X-Forwarded-For") && len(clientIP) > 0 {
+		if clientIP != c.Request.Header.Get("X-Forwarded-For") || len(clientIP) == 0 {
 			if claims["is_guest"] == false {
+				logger.WithRequestHeaders(c).Warn().
+					Uint32("logCode", 230124).
+					Str("action", "CheckHeaderWithValidOrGuestUser").
+					Str("previousIP", clientIP).
+					Msg("The user IP has been changed")
+
 				c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 				c.Abort()
 				return
@@ -120,12 +197,27 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 
 			_, err := GuestLogin(c)
 			if err != nil {
+				logger.WithRequestHeaders(c).Error().
+					Uint32("logCode", 230125).
+					Str("action", "CheckHeaderWithValidOrGuestUser").
+					Msg(err.Error())
+
 				c.Abort()
 				return
 			}
 
+			logger.WithRequestHeaders(c).Debug().
+				Uint32("logCode", 130126).
+				Str("action", "CheckHeaderWithValidOrGuestUser").
+				Msg("Guest Login Successfully")
+
 			claims, err = ParseJWTHeader(c.Request.Header.Get("Authorization"))
 			if err != nil {
+				logger.WithRequestHeaders(c).Warn().
+					Uint32("logCode", 230127).
+					Str("action", "CheckHeaderWithValidOrGuestUser").
+					Msg(err.Error())
+
 				c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
 				c.Abort()
 				return
@@ -134,6 +226,11 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 
 		// Add some headers from JWT token
 		addRequiredHeadersFromJWT(c, claims)
+
+		logger.WithRequestHeaders(c).Debug().
+			Uint32("logCode", 130120).
+			Str("action", "CheckHeaderWithValidOrGuestUser").
+			Msg("The Token is valid")
 
 		c.Next()
 	}
