@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"git.abanppc.com/lenz-public/lenz-go-sdk/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -68,6 +69,11 @@ func (r *Router) do(c *gin.Context, backgroundUseCase bool, checkAllErrors bool,
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		logger.WithRequestHeaders(c).Error().
+			Uint32("logCode", 230201).
+			Str("action", "HUInterfaceRouter").
+			Msg(err.Error())
+
 		if checkAllErrors {
 			c.JSON(errorStatusCode, gin.H{"message": errorMessage})
 		}
@@ -78,6 +84,11 @@ func (r *Router) do(c *gin.Context, backgroundUseCase bool, checkAllErrors bool,
 
 	byteResponse, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		logger.WithRequestHeaders(c).Error().
+			Uint32("logCode", 230202).
+			Str("action", "HUInterfaceRouter").
+			Msg(err.Error())
+
 		if checkAllErrors {
 			c.JSON(errorStatusCode, gin.H{"message": errorMessage})
 		}

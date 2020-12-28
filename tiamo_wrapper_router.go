@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"git.abanppc.com/lenz-public/lenz-go-sdk/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -51,12 +52,22 @@ func (r *TiamoRouter) Execute(c *gin.Context) (int, []byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		logger.WithRequestHeaders(c).Error().
+			Uint32("logCode", 230211).
+			Str("action", "TiamoWrapperRouter").
+			Msg(err.Error())
+
 		return 0, nil, err
 	}
 	defer resp.Body.Close()
 
 	byteResponse, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		logger.WithRequestHeaders(c).Error().
+			Uint32("logCode", 230212).
+			Str("action", "TiamoWrapperRouter").
+			Msg(err.Error())
+
 		return 0, nil, err
 	}
 
