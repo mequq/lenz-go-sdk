@@ -140,6 +140,7 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 // CheckAuthorizationHeaderWithValidOrGuestUser check request has valid token for valid users or loging in  as guest user and returns the token
 func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		c.Header("Is-Open-Api", "True")
 
 		// Login as guest if Authorization header not included
 		if len(c.Request.Header.Get("Authorization")) == 0 {
