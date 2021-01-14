@@ -55,6 +55,7 @@ func WithRequestHeaders(c *gin.Context) *zerolog.Logger {
 		Str("X-Request-Id", c.Request.Header.Get("X-Request-Id")).
 		Str("msisdn", c.Request.Header.Get("MSISDN")).
 		Str("clientIP", c.Request.Header.Get("X-Forwarded-For")).
+		Str("tokenID", c.Request.Header.Get("Token-Id")).
 		Logger()
 	return &l
 }

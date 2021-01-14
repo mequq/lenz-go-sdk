@@ -169,7 +169,7 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 				Str("action", "CheckHeaderWithValidOrGuestUser").
 				Msg(err.Error())
 
-			c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 			c.Abort()
 			return
 		}
@@ -219,7 +219,7 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 					Str("action", "CheckHeaderWithValidOrGuestUser").
 					Msg(err.Error())
 
-				c.JSON(http.StatusUnprocessableEntity, gin.H{"message": "دسترسی شما منقضی شده است"})
+				c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})
 				c.Abort()
 				return
 			}
@@ -271,4 +271,5 @@ func ParseJWTHeader(token string) (map[string]interface{}, error) {
 
 func addRequiredHeadersFromJWT(c *gin.Context, claims map[string]interface{}) {
 	c.Request.Header.Set("MSISDN", fmt.Sprintf("%v", claims["user_id"]))
+	c.Request.Header.Set("Token-Id", fmt.Sprintf("%v", claims["token_id"]))
 }
