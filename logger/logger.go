@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 
+	"git.abanppc.com/lenz-public/lenz-go-sdk/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
@@ -54,7 +55,7 @@ func WithRequestHeaders(c *gin.Context) *zerolog.Logger {
 	l := Logger.With().
 		Str("X-Request-Id", c.Request.Header.Get("X-Request-Id")).
 		Str("msisdn", c.Request.Header.Get("MSISDN")).
-		Str("clientIP", c.Request.Header.Get("X-Forwarded-For")).
+		Str("clientIP", c.Request.Header.Get(entities.XForwardedForKey)).
 		Str("tokenID", c.Request.Header.Get("Token-Id")).
 		Logger()
 	return &l

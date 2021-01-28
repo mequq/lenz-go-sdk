@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"git.abanppc.com/lenz-public/lenz-go-sdk/entities"
 	"git.abanppc.com/lenz-public/lenz-go-sdk/logger"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -116,7 +117,7 @@ func CheckProcessableHeaderWithValidUser() gin.HandlerFunc {
 		}
 
 		clientIP := fmt.Sprintf("%v", claims["ip"])
-		if clientIP != c.Request.Header.Get("X-Forwarded-For") || len(clientIP) == 0 {
+		if clientIP != c.Request.Header.Get(entities.XForwardedForKey) || len(clientIP) == 0 {
 			logger.WithRequestHeaders(c).Warn().
 				Uint32("logCode", 230114).
 				Str("action", "CheckHeaderWithValidUserInBackgroundAPI").
@@ -183,7 +184,7 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 
 		clientIP := fmt.Sprintf("%v", claims["ip"])
 		// if user was a guest we call the guest login again else we return 401
-		if clientIP != c.Request.Header.Get("X-Forwarded-For") || len(clientIP) == 0 {
+		if clientIP != c.Request.Header.Get(entities.XForwardedForKey) || len(clientIP) == 0 {
 			if claims["is_guest"] == false {
 				logger.WithRequestHeaders(c).Warn().
 					Uint32("logCode", 230124).
@@ -238,7 +239,7 @@ func CheckAuthorizationHeaderWithValidOrGuestUser() gin.HandlerFunc {
 }
 
 func checkIfUserIPChanged(c *gin.Context, clientIP string) bool {
-	headerIP := c.Request.Header.Get("X-Forwarded-For")
+	headerIP := c.Request.Header.Get(entities.XForwardedForKey)
 
 	if clientIP != headerIP || len(clientIP) == 0 {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "دسترسی شما منقضی شده است"})

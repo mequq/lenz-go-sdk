@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"git.abanppc.com/lenz-public/lenz-go-sdk/entities"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,7 +16,7 @@ func GuestLogin(c *gin.Context) (interface{}, error) {
 		deviceType = "WEB"
 	}
 
-	clientIP := c.Request.Header.Get("X-Forwarded-For")
+	clientIP := c.Request.Header.Get(entities.XForwardedForKey)
 	if !IPValidator(clientIP) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "Some of the required headers are missed"})
 		return nil, errors.New("Some of the required headers are missed")
@@ -27,7 +28,7 @@ func GuestLogin(c *gin.Context) (interface{}, error) {
 		c.JSON(http.StatusForbidden, gin.H{"message": "error while create request"})
 		return nil, err
 	}
-	req.Header.Set("X-Forwarded-For", clientIP)
+	req.Header.Set(entities.XForwardedForKey, clientIP)
 	req.Header.Set("Device-Type", deviceType)
 
 	client := &http.Client{}

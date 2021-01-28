@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"git.abanppc.com/lenz-public/lenz-go-sdk/entities"
 	"git.abanppc.com/lenz-public/lenz-go-sdk/logger"
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +27,7 @@ func NewTiamoRouter(c *gin.Context, method, endPoint string) *TiamoRouter {
 	router := &TiamoRouter{
 		EndPoint:      endPoint,
 		Method:        method,
-		XForwardedFor: c.Request.Header.Get("X-Forwarded-For"),
+		XForwardedFor: c.Request.Header.Get(entities.XForwardedForKey),
 		MSISDN:        c.Request.Header.Get("MSISDN"),
 		RequestID:     c.Request.Header.Get("X-Request-Id"),
 		Data:          map[string]interface{}{},
