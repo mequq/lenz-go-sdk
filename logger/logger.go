@@ -5,9 +5,9 @@ import (
 	"net"
 	"os"
 
-	"git.abanppc.com/lenz-public/lenz-go-sdk/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/mequq/lenz-go-sdk/lenz-go-sdk/entities"
 	"github.com/rs/zerolog"
 )
 

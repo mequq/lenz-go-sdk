@@ -1,4 +1,4 @@
-module git.abanppc.com/lenz-public/lenz-go-sdk
+module github.com/mequq/lenz-go-sdk/lenz-go-sdk
 
 go 1.15
 
