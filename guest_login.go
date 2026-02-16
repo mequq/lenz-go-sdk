@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"git.abanppc.com/lenz-public/lenz-go-sdk/entities"
 	"github.com/gin-gonic/gin"
+	"github.com/mequq/lenz-go-sdk/entities"
 )
 
 // GuestLogin login user as guest

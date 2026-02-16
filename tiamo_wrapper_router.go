@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"os"
 
-	"git.abanppc.com/lenz-public/lenz-go-sdk/entities"
-	"git.abanppc.com/lenz-public/lenz-go-sdk/logger"
 	"github.com/gin-gonic/gin"
+	"github.com/mequq/lenz-go-sdk/entities"
+	"github.com/mequq/lenz-go-sdk/logger"
 )
 
 // TiamoRouter is required data for calling Tiamo

@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"git.abanppc.com/lenz-public/lenz-go-sdk/entities"
-	"git.abanppc.com/lenz-public/lenz-go-sdk/logger"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/mequq/lenz-go-sdk/entities"
+	"github.com/mequq/lenz-go-sdk/logger"
 )
 
 // CheckAuthorizationHeaderWithValidUser check request has valid token
